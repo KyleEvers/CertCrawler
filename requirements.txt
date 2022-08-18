@@ -1,0 +1,4 @@
+docopt==0.6.2
+requests==2.27.1
+schema==0.7.1
+tqdm==4.30.0
