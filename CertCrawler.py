@@ -16,7 +16,7 @@ Options:
   -h --help                              Show this message.
   -d DOMAIN                              Pull domains from crt.sh
   -o OUTPUT_FILE                         File you want to write output to
-  -f OUTPUT_FILE_TYPE                    File type for output. Valid output values "csv" and "json". [default: csv]
+  -f OUTPUT_FILE_TYPE                    File type for output. Valid output values "csv", "json", and "all". [default: csv]
   -i INPUT_FILE                          Load subdomains from file
   -t TIMEOUT                             Set timeout for network requests [default:5]
   --log-level=LEVEL                      If specified, then the log level will be set to
@@ -75,7 +75,6 @@ def pull_certs(domain: str) -> Dict[str, Any]:
             for cert_entry in data:
                 for domain in cert_entry['name_value'].splitlines():
                     domains[domain] = Domain(domain, cert_entry['common_name'], cert_entry['not_before'], cert_entry['not_after'])
-            # logging.debug(domains)
             logging.info(f"Identified {len(domains)} domains..")
             return domains
         except Exception as e:
@@ -112,6 +111,7 @@ def get_cert_info(domains: Dict[str, Any], timeout: int, scanned: List[str]) -> 
     # Oh boy! Undefined depth Recursion! Let's keep track of visited domains
     if subjectaltname:
         # TODO update to python 3.9 union domains | get_cert_info(subjectaltname, timeout, (scanned + list(domains.keys())))
+        logging.info(f"Identified {len(subjectaltname)} Subject Alternative Name domains..")
         # We set domains to the union of scraped domains and domains within the subjectAltName
         domains = {**domains, **get_cert_info(subjectaltname, timeout, (scanned + list(domains.keys())))}
     return domains
@@ -126,7 +126,6 @@ def attempt_https_connection(domain: str, timeout: int) -> Dict[str, Any]:
             # TODO ignore CERTIFICATE_VERIFY_FAILED
             s.connect((domain, 443))
             cert = s.getpeercert()
-            # print(f"This is the cert: {cert}")
             return cert
     # errno 8
     except socket.gaierror as e:
@@ -134,6 +133,7 @@ def attempt_https_connection(domain: str, timeout: int) -> Dict[str, Any]:
     # errno 54/60/61 Connection
     except socket.error as e:
         logging.debug(f"{domain}: Connection Reset, Refused, or Timed Out: {e}")
+    # If certificate does not match hostname
     except ssl.CertificateError as e:
         logging.debug(f"{domain}: Certificate Error: {e}")
     # I know, general exceptions bring great shame, but network connections can be weird
@@ -205,7 +205,7 @@ def main() -> None:
             "-f": And(
                 str,
                 Use(str.lower),
-                lambda n: n in ("csv", "json"),
+                lambda n: n in ("csv", "json", "all"),
                 error="Possible values for output file type are csv and json",
             ),
             "-i": Or(
@@ -251,9 +251,9 @@ def main() -> None:
     results = get_cert_info(domains, timeout, [])
 
     if output:
-        if output_file_type == "csv":
+        if output_file_type == "csv" or output_file_type == "all":
             write_output_to_csv(results, output)
-        elif output_file_type == "json":
+        if output_file_type == "json" or output_file_type == "all":
             write_output_to_json(results, output)
     else:
         print_output(results)
