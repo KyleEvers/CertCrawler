@@ -2,7 +2,7 @@
 
 This script utilizes cert transparency logs to identify subdomains, identify if they are live, and identify the corresponding organizational ownership.
 
-Checking crt.sh for certificates issued matching the target domain, we pull the corresponding "Matching Identities". Once Matching Identities have been identified we make a connection over HTTPS to pull the domain's corresponding certificate information. This cert information may contain an optional field "Organization Unit" and "Organization Unit Name" which can be used to identify domain ownership.
+Checking crt.sh for certificates issued matching the target domain, we pull the corresponding "Matching Identities". Once Matching Identities have been identified we make a connection over HTTPS to pull the domain's corresponding certificate information. This cert information may contain an optional fields  including "Organization Unit" and "Organization Unit Name" which can be used to identify domain ownership. Certificates can also contain "Subject Alternative Names" or additional domains the certificate is valid for. We recursively parse through all the "Subject Alternative Names" repeating the connection process.
 
 ## Getting Started ##
 
